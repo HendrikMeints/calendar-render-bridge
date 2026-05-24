@@ -139,6 +139,16 @@ def incoming_appointment():
 
     payload = request.get_json() or {}
 
+    print("RAW PAYLOAD:", payload)
+
+    if "Wörterbuch" in payload and isinstance(payload["Wörterbuch"], dict):
+        payload = payload["Wörterbuch"]
+
+    if "Dictionary" in payload and isinstance(payload["Dictionary"], dict):
+        payload = payload["Dictionary"]
+
+    print("RAW PAYLOAD:", payload)
+
     is_valid, error = validate_payload(payload)
 
     if not is_valid:
