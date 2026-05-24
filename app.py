@@ -24,6 +24,15 @@ HIVEMQ_TOPIC = os.environ.get(
 
 
 def publish_to_mqtt(payload):
+    publish_done = {"ok": False}
+
+    def on_connect(client, userdata, flags, reason_code, properties=None):
+        print(f"MQTT connected: {reason_code}")
+
+    def on_publish(client, userdata, mid, reason_code=None, properties=None):
+        print(f"MQTT publish confirmed. MID={mid}, reason={reason_code}")
+        publish_done["ok"] = True
+
     client = mqtt.Client(
         mqtt.CallbackAPIVersion.VERSION2,
         client_id=f"render_bridge_{uuid.uuid4()}"
@@ -38,6 +47,9 @@ def publish_to_mqtt(payload):
         cert_reqs=ssl.CERT_REQUIRED
     )
 
+    client.on_connect = on_connect
+    client.on_publish = on_publish
+
     client.connect(
         HIVEMQ_HOST,
         HIVEMQ_PORT,
@@ -49,14 +61,16 @@ def publish_to_mqtt(payload):
     result = client.publish(
         HIVEMQ_TOPIC,
         json.dumps(payload, ensure_ascii=False),
-        qos=1
+        qos=0
     )
 
-    result.wait_for_publish()
+    result.wait_for_publish(timeout=5)
 
     client.loop_stop()
     client.disconnect()
 
+    if result.rc != mqtt.MQTT_ERR_SUCCESS:
+        raise RuntimeError(f"MQTT Publish fehlgeschlagen. Code: {result.rc}")
 
 def validate_payload(payload):
     required = [
