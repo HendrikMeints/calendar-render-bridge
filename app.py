@@ -82,6 +82,15 @@ def health():
         "service": "calendar-render-bridge"
     })
 
+@app.route("/debug-token")
+def debug_token():
+    token = os.environ.get("WEBHOOK_TOKEN")
+
+    return jsonify({
+        "has_token": bool(token),
+        "token_length": len(token) if token else 0,
+        "token_preview": token[:3] + "..." + token[-3:] if token and len(token) >= 6 else None
+    })
 
 @app.route("/incoming-appointment", methods=["POST"])
 def incoming_appointment():
