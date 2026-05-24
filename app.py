@@ -24,53 +24,62 @@ HIVEMQ_TOPIC = os.environ.get(
 
 
 def publish_to_mqtt(payload):
-    publish_done = {"ok": False}
+    import time
+
+    state = {
+        "connected": False,
+        "published": False,
+    }
 
     def on_connect(client, userdata, flags, reason_code, properties=None):
         print(f"MQTT connected: {reason_code}")
+        state["connected"] = True
 
     def on_publish(client, userdata, mid, reason_code=None, properties=None):
         print(f"MQTT publish confirmed. MID={mid}, reason={reason_code}")
-        publish_done["ok"] = True
+        state["published"] = True
 
     client = mqtt.Client(
         mqtt.CallbackAPIVersion.VERSION2,
         client_id=f"render_bridge_{uuid.uuid4()}"
     )
 
-    client.username_pw_set(
-        HIVEMQ_USERNAME,
-        HIVEMQ_PASSWORD
-    )
-
-    client.tls_set(
-        cert_reqs=ssl.CERT_REQUIRED
-    )
+    client.username_pw_set(HIVEMQ_USERNAME, HIVEMQ_PASSWORD)
+    client.tls_set(cert_reqs=ssl.CERT_REQUIRED)
 
     client.on_connect = on_connect
     client.on_publish = on_publish
 
-    client.connect(
-        HIVEMQ_HOST,
-        HIVEMQ_PORT,
-        keepalive=60
-    )
+    print("MQTT HOST:", HIVEMQ_HOST)
+    print("MQTT PORT:", HIVEMQ_PORT)
+    print("MQTT TOPIC:", HIVEMQ_TOPIC)
 
+    client.connect(HIVEMQ_HOST, HIVEMQ_PORT, keepalive=60)
     client.loop_start()
+
+    for _ in range(50):
+        if state["connected"]:
+            break
+        time.sleep(0.1)
+
+    if not state["connected"]:
+        client.loop_stop()
+        client.disconnect()
+        raise RuntimeError("MQTT Verbindung wurde nicht bestätigt.")
 
     result = client.publish(
         HIVEMQ_TOPIC,
         json.dumps(payload, ensure_ascii=False),
-        qos=0
+        qos=1
     )
 
-    result.wait_for_publish(timeout=5)
+    result.wait_for_publish(timeout=10)
 
     client.loop_stop()
     client.disconnect()
 
-    if result.rc != mqtt.MQTT_ERR_SUCCESS:
-        raise RuntimeError(f"MQTT Publish fehlgeschlagen. Code: {result.rc}")
+    if not state["published"]:
+        raise RuntimeError("MQTT Publish wurde nicht bestätigt.")
 
 def validate_payload(payload):
     required = [
