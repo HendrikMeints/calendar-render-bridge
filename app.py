@@ -92,6 +92,17 @@ def debug_token():
         "token_preview": token[:3] + "..." + token[-3:] if token and len(token) >= 6 else None
     })
 
+@app.route("/debug-env")
+def debug_env():
+    return jsonify({
+        "has_webhook_token": bool(os.environ.get("WEBHOOK_TOKEN")),
+        "has_hivemq_host": bool(os.environ.get("HIVEMQ_HOST")),
+        "has_hivemq_username": bool(os.environ.get("HIVEMQ_USERNAME")),
+        "has_hivemq_password": bool(os.environ.get("HIVEMQ_PASSWORD")),
+        "hivemq_port": os.environ.get("HIVEMQ_PORT"),
+        "hivemq_topic": os.environ.get("HIVEMQ_TOPIC"),
+    })
+
 @app.route("/incoming-appointment", methods=["POST"])
 def incoming_appointment():
 
