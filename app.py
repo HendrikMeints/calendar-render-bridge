@@ -147,7 +147,9 @@ def incoming_appointment():
     if "Dictionary" in payload and isinstance(payload["Dictionary"], dict):
         payload = payload["Dictionary"]
 
-    print("RAW PAYLOAD:", payload)
+    if "" in payload and isinstance(payload[""], dict):
+        payload = payload[""]
+
 
     is_valid, error = validate_payload(payload)
 
