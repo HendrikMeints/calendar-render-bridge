@@ -17,6 +17,7 @@ HIVEMQ_HOST = os.environ.get("HIVEMQ_HOST")
 HIVEMQ_PORT = int(os.environ.get("HIVEMQ_PORT", "8883"))
 HIVEMQ_USERNAME = os.environ.get("HIVEMQ_USERNAME")
 HIVEMQ_PASSWORD = os.environ.get("HIVEMQ_PASSWORD")
+MQTT_HEALTH_TOPIC= os.environ.get("HIVEMQ_HEALTH_TOPIC")
 HIVEMQ_TOPIC = os.environ.get(
     "HIVEMQ_TOPIC",
     "calendar_app/incoming_appointments"
@@ -172,3 +173,9 @@ def incoming_appointment():
         "success": True,
         "external_id": payload["external_id"]
     })
+
+@app.route("/incoming-health", methods=["POST"])
+def incoming_health():
+    payload = request.get_json(force=True)
+    publish_to_mqtt(payload, os.environ["MQTT_HEALTH_TOPIC"])
+    return {"ok": True, "topic": os.environ["MQTT_HEALTH_TOPIC"]}
